@@ -26,7 +26,7 @@ param (
 
 . $PSScriptRoot\helpers.ps1
 
-$scriptVersion = "1.2.0";
+$scriptVersion = "1.2.1";
 ShowBanner "`nGOST Tunnel for PowerShell (v$scriptVersion)`n`tby Hamid Nazari (https://github.com/hamid-nazari/PsGOSTClient)`n" " -=" "=-" "="
 
 if ([System.IO.Path]::Exists($GOST)) {
@@ -189,8 +189,10 @@ try {
     }
     New-NetRoute -DestinationPrefix "$ServerAddress/32" -NextHop $DefaultGateway -InterfaceAlias $defaultGatewayIfAlias -ErrorAction Ignore -PolicyStore ActiveStore > $null;
 
+    $GOSTVersion = & $GOST "-V";
     Write-Host "- Starting GOST"
     Write-Host "  + Executable: $GOST"
+    Write-Host "  + GOST verion: $GOSTVersion"
     Write-Host "  + Building configuration ..."
     Write-Host "  + Tunnel subnet: $ServiceSubnet"
 

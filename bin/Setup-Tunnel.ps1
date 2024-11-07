@@ -9,7 +9,7 @@ param (
     [string] $GOST = "gost.exe",
     [string] $ServiceSubnet = $null,
     [System.Net.IPAddress] $ServiceGateway,
-    [System.Net.IPAddress[]] $ServiceDNS = ("9.9.9.9", "1.0.0.1"),
+    [System.Net.IPAddress[]] $ServiceDNS = ("1.0.0.1", "8.8.8.8"),
     [switch] $TAPService,
     [string] $ServiceNICAlias = $null,
     [int] $ServicePort = 0,
@@ -20,7 +20,8 @@ param (
     [pscredential] $SSHCredentials = $null,
     [string] $SSHPrivateKeyFile = $null,
     [switch] $WithSSHDDialer, 
-    [switch] $ShowConfig
+    [switch] $ShowConfig,
+    [string] $configName = "config"
 )
 
 . $PSScriptRoot\helpers.ps1
@@ -39,11 +40,11 @@ else {
 }
 $workingFolder = [System.IO.Path]::GetDirectoryName($GOST);
 
-$configFilePath = "$workingFolder/config.ps1";
+$configFilePath = "$workingFolder/${configName}.ps1";
 if (!(Test-Path $configFilePath)) {
-    $configFilePath = "../config/config.ps1";
+    $configFilePath = "../config/${configName}.ps1";
     if (!(Test-Path $configFilePath)) {
-        $configFilePath = "~/.gosttunnel/config.ps1";
+        $configFilePath = "~/.gosttunnel/${configName}.ps1";
     }
 }
 if (Test-Path $configFilePath) {

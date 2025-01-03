@@ -62,3 +62,45 @@ function ShowBanner {
     Write-Host $sepLine;
     Write-Host "";
 }
+
+function Compare-Versions {
+    [CmdletBinding()]
+    param
+    (
+        [string]
+        $v1,
+        [string]
+        $v2,
+        [switch]
+        $unqualified
+    )
+    $pattern = [regex]"\s*(\d+)\.(\d+)\.(\d+)(?:\.([^\s]+))?";
+
+    $m1 = $pattern.Match($v1);
+    if (!$m1.Success) {
+        throw "Invalid first argument version format '$v1'"
+    }
+    $m2 = $pattern.Match($v2);
+    if (!$m2.Success) {
+        throw "Invalid first argument version format '$v2'"
+    }
+    for ($i = 1; $i -le 3; $i++) {
+        $diff = ([int] $m1.Groups[$i].Value) - ([int] $m2.Groups[$i].Value)
+        if ($diff -ne 0) {
+            return ($diff -gt 0 ? 1 : -1);
+        }
+    }
+    if ($unqualified) {
+        return 0;
+    }
+    if ($m1.Groups[4].Value.Length -eq 0) {
+        if ($m2.Groups[4].Value.Length -eq 0) {
+            return 0;
+        }
+        return 1;
+    }
+    elseif ($m2.Groups[4].Value.Length -eq 0) {
+        return -1;
+    }
+    return $m1.Groups[4].Value.CompareTo($m2.Groups[4].Value);
+}

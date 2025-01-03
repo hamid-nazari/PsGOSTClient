@@ -25,18 +25,58 @@ param (
 )
 
 . $PSScriptRoot\helpers.ps1
+. $PSScriptRoot\versions.ps1
 
-$scriptVersion = "1.2.1";
-ShowBanner "`nGOST Tunnel for PowerShell (v$scriptVersion)`n`tby Hamid Nazari (https://github.com/hamid-nazari/PsGOSTClient)`n" " -=" "=-" "="
+ShowBanner "`nGOST Tunnel for PowerShell (v$($versions["script"]))`n`tby Hamid Nazari (https://github.com/hamid-nazari/PsGOSTClient)`n" " -=" "=-" "="
 
+$foundGOST = $false;
 if ([System.IO.Path]::Exists($GOST)) {
     $GOST = [System.IO.Path]::GetFullPath($GOST);
+    $foundGOST = $true;
 }
 elseif ([System.IO.Path]::Exists([System.IO.Path]::Combine($PSScriptRoot, $GOST))) {
     $GOST = [System.IO.Path]::GetFullPath([System.IO.Path]::Combine($PSScriptRoot, $GOST));
+    $foundGOST = $true;
 }
-else {
-    throw "Can't find GOST executable: $GOST";
+
+$downloadGOST = !$foundGOST;
+if ($foundGOST) {
+    $GOSTVersion = & $GOST "-V";
+    if (!$?) {
+        throw "Could not execute GOST binary ($GOST)"
+    }
+    $GOSTVersionPattern = [regex]"gost\sv(\d+)\.(\d+)\.(\d+)(?:-([^\s]+))?\s\(go";
+    $parts = $GOSTVersionPattern.Match($GOSTVersion);
+    if (!$parts.Success) {
+        throw "Could not parse GOST version ($GOSTVersion)"
+    }
+    $GOSTVersionLocal = $parts.Groups[1].Value + "." + $parts.Groups[2].Value + "." + $parts.Groups[3].Value;
+    if ($parts.Groups[4].Value.Length -ne 0) {
+        $GOSTVersionLocal += "." + $parts.Groups[4].Value;
+    }
+    $result = Compare-Versions $versions["gost"] $GOSTVersionLocal;
+    $downloadGOST = $result -gt 0;
+}
+
+if ($downloadGOST) {
+    if (!$foundGOST) {
+        Write-Host "- GOST binary was not found"
+    }
+    else {
+        Write-Host "- GOST 'v$GOSTVersionLocal' was found locally"
+    }
+    Write-Host "- Recent GOST 'v$($versions["gost"])' will be downloaded ..."
+    Invoke-WebRequest -Uri "https://github.com/go-gost/gost/releases/download/v$($versions["gost"])/gost_$($versions["gost"])_windows_amd64.zip" -OutFile "$PSScriptRoot/gost_$($versions["gost"])_windows_amd64.zip";
+    $GOSTArch = (Get-ChildItem -File "*.zip")[0];
+    if($null -eq $GOSTArch) {
+        throw "Can't located downloaded GOST archive"
+    }
+    Remove-Item ".tmp" -Recurse -Force -ErrorAction Ignore;
+    Expand-Archive $GOSTArch -DestinationPath ".tmp";
+    Move-Item -Force ".tmp/gost.exe" ".";
+    Remove-Item ".tmp" -Recurse -Force -ErrorAction Ignore;
+    $GOST = [System.IO.Path]::GetFullPath("gost.exe");
+    $GOSTVersion = & $GOST "-V";
 }
 $workingFolder = [System.IO.Path]::GetDirectoryName($GOST);
 
